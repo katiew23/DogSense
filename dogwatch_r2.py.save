@@ -1,0 +1,46 @@
+etime
+oudinary import upload_image
+
+.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+os.makedirs(STATIC_DIR, exist_ok=True)
+
+IMAGE_PATH = os.path.join(STATIC_DIR, "last_visitor.jpg")
+PREV_PATH = os.path.join(STATIC_DIR, "prev.jpg")
+CURR_PATH = os.path.join(STATIC_DIR, "curr.jpg")
+
+picam2 = Picamera2()
+picam2.configure(picam2.create_still_configuration())
+picam2.start()
+
+print("DogSense Release 2 running")
+
+def capture(path):
+    picam2.capture_file(path)
+
+def movement_detected(img1, img2):
+    diff = ImageChops.difference(img1, img2)
+    return diff.getbbox() is not None
+
+time.sleep(2)
+capture(PREV_PATH)
+
+try:
+    while True:
+        time.sleep(3)
+        capture(CURR_PATH)
+
+        img1 = Image.open(PREV_PATH)
+        img2 = Image.open(CURR_PATH)
+
+        if movement_detected(img1, img2):
+            print("Movement detected", datetime.now())
+            capture(IMAGE_PATH)
+            upload_image(IMAGE_PATH)
+
+        os.replace(CURR_PATH, PREV_PATH)
+
+except KeyboardInterrupt:
+    pass
+finally:
+    picam2.stop()

@@ -2,13 +2,18 @@
 
 import time
 import os
+import json
 from datetime import datetime
 from picamera2 import Picamera2
 from PIL import Image, ImageChops
 from upload_cloudinary import upload_image
 import BlynkLib
+import paho.mqtt.publish as publish
 
-BLYNK_AUTH = os.getenv("BLYNK_AUTH")
+MQTT_BROKER = "localhost"
+MQTT_TOPIC = "dogsense/events"
+
+BLYNK_AUTH = "FsVLvjQrq4F0MmFb-Xc6gCa9R0Hr_SSs"
 blynk = BlynkLib.Blynk(BLYNK_AUTH)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,13 +28,13 @@ picam2 = Picamera2()
 picam2.configure(picam2.create_still_configuration())
 picam2.start()
 
-print("DogSense Release 2 running (camera + Blynk)")
-
 def capture(path):
     picam2.capture_file(path)
 
 def movement_detected(img1, img2):
     return ImageChops.difference(img1, img2).getbbox() is not None
+
+print("DogSense running")
 
 time.sleep(2)
 capture(PREV_PATH)
@@ -55,11 +60,24 @@ try:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print("MOVEMENT detected at", timestamp)
 
-            blynk.virtual_write(0, 1)        # LED
-            blynk.virtual_write(2, timestamp)  # ✅ LAST MOVEMENT (V2)
+            blynk.virtual_write(0, 1)
+            blynk.virtual_write(2, timestamp)
 
             capture(IMAGE_PATH)
-            upload_image(IMAGE_PATH)
+            image_url = upload_image(IMAGE_PATH)
+
+            event = {
+                "deviceId": "dogsense_pi_01",
+                "eventType": "movement_event",
+                "timestamp": datetime.now().isoformat(),
+                "imageUrl": image_url
+            }
+
+            publish.single(
+                MQTT_TOPIC,
+                json.dumps(event),
+                hostname=MQTT_BROKER
+            )
 
             last_event_time = now
             time.sleep(0.5)
