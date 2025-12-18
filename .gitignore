@@ -1,6 +1,10 @@
 .venv/
 __pycache__/
+*.db
 static/*.jpg
-*.pyc
+*.save
+*.save.*
+movement_log.txt
+pir_test.py
+sound_test.py
 .env
-
