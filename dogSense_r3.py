@@ -9,11 +9,15 @@ from PIL import Image, ImageChops
 from upload_cloudinary import upload_image
 import BlynkLib
 import paho.mqtt.publish as publish
+import requests
+
+SERVER_URL = "http://192.168.0.239:4000"
+USER_ID = "451d22d1-a4ff-49d4-b6db-a752d571991d"
 
 MQTT_BROKER = "localhost"
 MQTT_TOPIC = "dogsense/events"
 
-BLYNK_AUTH = "FsVLvjQrq4F0MmFb-Xc6gCa9R0Hr_SSs"
+BLYNK_AUTH = os.getenv("BLYNK_AUTH")
 blynk = BlynkLib.Blynk(BLYNK_AUTH)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -34,31 +38,6 @@ def capture(path):
 def movement_detected(img1, img2):
     return ImageChops.difference(img1, img2).getbbox() is not None
 
-def capture_and_upload(event_type):
-    capture(IMAGE_PATH)
-    image_url = upload_image(IMAGE_PATH)
-
-    event = {
-        "deviceId": "dogsense_pi_01",
-        "eventType": event_type,
-        "timestamp": datetime.now().isoformat(),
-        "imageUrl": image_url
-    }
-
-    publish.single(
-        MQTT_TOPIC,
-        json.dumps(event),
-        hostname=MQTT_BROKER
-    )
-
-    blynk.virtual_write(2, event_type + " captured")
-
-@blynk.on("V5")
-def manual_capture(value):
-    if int(value[0]) == 1:
-       print("MANUAL CAPTURE button pressed") 
-       capture_and_upload("manual_capture")
-
 print("DogSense running")
 
 time.sleep(2)
@@ -67,6 +46,23 @@ blynk.virtual_write(2, "Waiting for movement...")
 
 last_event_time = 0
 
+@blynk.on("V5")
+def manual_capture(value):
+    if int(value[0]) == 1:
+        print("MANUAL CAPTURE BUTTON PRESSED")
+        capture(IMAGE_PATH)
+        image_url = upload_image(IMAGE_PATH)
+
+        blynk.virtual_write(2, "Manual capture")
+
+        requests.post(
+            f"{SERVER_URL}/api/photo",
+            json={
+                "userId": USER_ID,
+                "url": image_url
+            }
+        )
+ 
 try:
     while True:
         blynk.run()
@@ -88,7 +84,42 @@ try:
             blynk.virtual_write(0, 1)
             blynk.virtual_write(2, timestamp)
 
-            capture_and_upload("movement_event")
+            capture(IMAGE_PATH)
+            image_url = upload_image(IMAGE_PATH)
+
+            requests.post(
+                f"{SERVER_URL}/api/photo",
+                json={
+                    "userId": USER_ID,
+                    "url": image_url
+                }
+            )
+
+            requests.post(
+                f"{SERVER_URL}/api/activity",
+                json={
+                    "userId": USER_ID,
+                    "movement": 2,
+                    "behaviour": 1
+                }
+            )
+
+            event = {
+                "deviceId": "dogsense_pi_01",
+                "eventType": "movement_event",
+                "timestamp": datetime.now().isoformat(),
+                "imageUrl": image_url
+                
+            }
+           
+
+            blynk.virtual_write(1, image_url)
+
+            publish.single(
+                MQTT_TOPIC,
+                json.dumps(event),
+                hostname=MQTT_BROKER
+            )
 
             last_event_time = now
             time.sleep(0.5)

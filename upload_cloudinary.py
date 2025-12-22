@@ -1,5 +1,6 @@
 import cloudinary
 import cloudinary.uploader
+import time
 
 cloudinary.config(
     cloud_name="dpzvpt5f1",
@@ -12,6 +13,8 @@ def upload_image(image_path):
         image_path,
         folder="dogsense",
         public_id="last_visitor",
-        overwrite=True
+        overwrite=True,
+        invalidate=True
     )
-    return result["secure_url"]
+
+    return result["secure_url"] + "?t=" + str(int(time.time()))
