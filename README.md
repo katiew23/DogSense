@@ -1,164 +1,170 @@
-DogSense – Release 3b
-Project Overview
+DogSense 
 
-DogSense is an IoT prototype for monitoring dog activity while the owner is away.
-It uses a Raspberry Pi with sensors and a camera to detect movement, capture images, and present updates remotely via a mobile app.
+IoT Dog Activity Monitoring System
 
-The system is event-driven and cloud-connected, focusing on practical IoT concepts rather than a custom-built dashboard.
+DogSense is an IoT-based monitoring system designed to detect and log activity in a home environment when a dog is left alone.
+The system uses a Raspberry Pi with a camera and Sense HAT sensors to detect movement and physical disturbance, capture images, and publish events using MQTT. A backend service stores events for analysis, while a Blynk mobile app provides live feedback and manual control.
 
-Release 3 Overview
+Project Aim
 
-Release 3 represents the final version of DogSense.
+The aim of this project is to design and implement a working IoT prototype that:
 
-In this release, the Raspberry Pi acts as an edge device that detects movement, captures images, uploads them to the cloud, and updates a mobile interface in real time. Rather than building a custom web dashboard, the Blynk IoT platform was selected to provide a reliable, mobile-first user interface.
+Collects data from physical sensors
 
-Cloudinary is used for persistent image storage and delivery.
+Applies local processing and decision-making
 
-This release demonstrates a complete IoT workflow including sensing, processing, cloud integration, and remote monitoring.
+Communicates events using standard IoT networking protocols
 
-System Behaviour
+Separates device logic from backend data handling
 
-When movement is detected:
+Presents live feedback through a lightweight user interface
 
-The Raspberry Pi detects motion using sensors
+System Architecture
 
-An image is captured using the Pi camera
+High-level architecture:
 
-The image is uploaded to Cloudinary
+Sensors (Camera + Sense HAT)
+↓
+Raspberry Pi Device (dogSense.py)
+↓
+MQTT Broker
+↓
+Backend Listener (SQLite + alert logic)
+↓
+Blynk Mobile App (live updates + manual control)
 
-The Cloudinary image URL is updated in the Blynk app
+The architecture follows a message-driven IoT design where the device, messaging layer, backend processing, and user interface are clearly separated.
 
-The latest image is displayed on the mobile interface
+Hardware Used
 
-This allows the user to remotely view the most recent activity without direct access to the device.
+Raspberry Pi
 
-Technologies Used
+Raspberry Pi Camera Module
 
-Raspberry Pi OS (Linux)
+Sense HAT (accelerometer)
 
-Python
+Sensors & Event Detection
+Camera-Based Movement Detection
 
-PiCamera2
+Periodic image capture
 
-Blynk IoT Platform
+Image differencing used to detect movement
 
-Cloudinary
+Significant changes trigger an event
 
-TCP/IP networking
+An image is captured and uploaded on detection
 
-Files
+Sense HAT Accelerometer (Shake Detection)
 
-dogSense_r3.py – Main edge-device application (motion detection, image capture, Blynk integration)
+Raw accelerometer values are read from the Sense HAT
 
-upload_cloudinary.py – Helper module for uploading images to Cloudinary
+A calibrated threshold is used to detect sudden physical movement
 
-pi_server.py – Supporting service logic for device-side processing
+This logic is based on the accelerometer exercise from Lecture 1 and tuned using real sensor data
 
-dogwatch_r1.py – Release 1 baseline implementation
+Manual Capture (User Override)
 
-Earlier experimental code remains in the repository to demonstrate development progression but is not part of the final deployed system.
+A Blynk button allows the user to manually trigger an image capture
 
-Architecture
+Demonstrates remote interaction with the IoT device via a cloud-based UI
 
-Raspberry Pi (edge device) → Cloudinary (image storage)
-Raspberry Pi (edge device) → Blynk Cloud → Mobile App
+Networking & IoT Technologies
 
-Design Decisions
+MQTT
+Lightweight messaging protocol used to publish activity events from the device to a backend service.
 
-A custom web dashboard was initially explored during development.
-For the final release, the Blynk IoT platform was chosen to simplify deployment and provide a stable, mobile-friendly interface. This allowed the project to focus on core IoT concepts such as event handling, cloud integration, and remote monitoring rather than frontend development.
-
-Release Level
-
-This project corresponds to Release 3 on the grading spectrum, demonstrating a multi-component IoT system with cloud services, networking, and integrated device behaviour.
-
-
-
-
-
-DogSense – Release 3
-
-DogSense is an IoT prototype for monitoring dog activity using a Raspberry Pi, a camera, and a backend processing service.
-
-Release 3 Overview
-
-Release 3 extends DogSense from a single edge-device solution to a multi-component IoT system.
-
-In this release, movement events detected on the Raspberry Pi are published using MQTT to a backend service.
-The backend subscribes to these events, stores them persistently, and applies simple rule-based logic to detect high activity.
-
-This introduces backend processing, historical data storage, and intelligent behaviour beyond basic sensing.
-
-System Behaviour
-
-When movement is detected:
-
-The Raspberry Pi captures an image
-
-The image is uploaded to Cloudinary
-
-A structured event is published to an MQTT topic
-
-A backend service receives the event
-
-The event is stored in a SQLite database
-
-Alerts are generated when high activity is detected
-
-Technologies Used
-
-Raspberry Pi OS (Linux)
-
-Python
-
-PiCamera2
-
-MQTT (Mosquitto)
-
-SQLite
+Blynk Cloud
+Provides live UI feedback, manual control, and device status updates.
 
 Cloudinary
+Used to externally host captured images so they can be referenced across services.
 
-TCP/IP networking
+Due to Blynk platform constraints, the image widget does not support dynamically changing image URLs at runtime. To address this, images are uploaded to a fixed Cloudinary URL, allowing the Blynk app to display the most recent image without requiring URL updates. Full image history can be accessed directly via Cloudinary.
 
-Files
+Backend Service
 
-dogwatch_r2.py – Edge device application (movement detection + MQTT publish)
+The backend listener (backend_listener.py) subscribes to the MQTT topic and:
 
-backend_listener.py – Backend MQTT subscriber and event processor
+Stores events in a SQLite database
 
-upload_cloudinary.py – Image upload helper
+Records:
 
-dogwatch_r1.py – Release 1 baseline implementation
+Device ID
 
-Architecture
+Event type
 
-Raspberry Pi (edge device) → MQTT Broker → Backend Service → SQLite Database
+Timestamp
 
-# DogSense – Release 2
+Image URL
 
-DogSense is an IoT prototype for monitoring dog activity using a Raspberry Pi and a camera.
+Implements derived behaviour by detecting bursts of activity and issuing alerts
 
-## Release 2 Overview
-This release implements camera-based movement detection on a Raspberry Pi edge device.  
-When movement is detected, the device sends structured event data to the Blynk cloud platform.
+This backend service is intentionally decoupled from the device logic to reflect real-world IoT system design.
 
-A live web dashboard displays:
-- Current movement state
-- Timestamp of the last detected movement
-- Historical movement graph
+MQTT Message Schema
 
-## Technologies Used
-- Raspberry Pi OS (Linux)
-- Python
-- PiCamera2
-- Blynk IoT Platform
-- TCP/IP networking
+{
+"deviceId": "dogsense_pi_01",
+"eventType": "camera_movement | device_shake | manual_capture",
+"timestamp": "ISO-8601 timestamp",
+"imageUrl": "https://cloudinary.com/
+..."
+}
 
-## Files
-- `dogwatch_r2.py` – Release 2 application code
-- `upload_cloudinary.py` – Image upload helper
-- `dogwatch_r1.py` – Release 1 baseline implementation
+User Interface
 
-## Architecture
-Raspberry Pi (edge device) → Blynk Cloud → Web Dashboard
+The primary user interface for the system is a Blynk mobile application, which provides:
+
+Live event feedback
+
+Visual status indicators
+
+Manual capture functionality
+
+A lightweight and responsive monitoring experience
+
+During development, a web-based dashboard was also explored.
+This approach was later intentionally removed in favour of a clearer IoT-focused architecture using MQTT and a lightweight mobile UI, reducing system complexity while maintaining full functionality.
+
+Reliability & Design Considerations
+
+Cooldown logic is implemented to prevent event flooding
+
+Camera and accelerometer triggers operate independently
+
+Short delays are intentionally included to ensure stable operation and network reliability
+
+The system prioritises reliability and clarity over raw responsiveness
+
+How to Run
+
+Device (Raspberry Pi)
+python3 dogSense.py
+
+Backend Listener
+python3 backend_listener.py
+
+Ensure:
+
+An MQTT broker is running locally
+
+The Blynk authentication token is set as an environment variable
+
+Project Status
+
+This project represents a Release 3 (Excellent) IoT prototype, demonstrating:
+
+Multi-sensor data collection
+
+Event-driven device logic
+
+Lightweight messaging with MQTT
+
+Backend persistence and derived behaviour
+
+Cloud-based UI integration
+
+Author
+
+Kate Williams
+HDip Computer Science – IoT & Networking
