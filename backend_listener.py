@@ -28,7 +28,10 @@ def on_message(client, userdata, msg):
     data = json.loads(msg.payload.decode())
 
     cur.execute(
-        "INSERT INTO events (device_id, event_type, timestamp, image_url) VALUES (?, ?, ?, ?)",
+        """
+        INSERT INTO events (device_id, event_type, timestamp, image_url)
+        VALUES (?, ?, ?, ?)
+        """,
         (
             data["deviceId"],
             data["eventType"],
