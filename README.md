@@ -24,13 +24,13 @@ System Architecture
 High-level architecture:
 
 Sensors (Camera + Sense HAT)
-↓
+
 Raspberry Pi Device (dogSense.py)
-↓
+
 MQTT Broker
-↓
+
 Backend Listener (SQLite + alert logic)
-↓
+
 Blynk Mobile App (live updates + manual control)
 
 The architecture follows a message-driven IoT design where the device, messaging layer, backend processing, and user interface are clearly separated.
