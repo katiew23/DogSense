@@ -2,6 +2,8 @@ DogSense
 
 IoT Dog Activity Monitoring System
 
+https://youtu.be/Z3beY0AR2s8 (video link for Demo)
+
 DogSense is an IoT-based monitoring system designed to detect and log activity in a home environment when a dog is left alone.
 The system uses a Raspberry Pi with a camera and Sense HAT sensors to detect movement and physical disturbance, capture images, and publish events using MQTT. A backend service stores events for analysis, while a Blynk mobile app provides live feedback and manual control.
 
